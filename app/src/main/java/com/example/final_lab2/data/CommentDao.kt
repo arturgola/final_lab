@@ -1,8 +1,9 @@
-package com.example.final_lab2
+package com.example.final_lab2.data
 
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import com.example.final_lab2.models.Comment
 
 @Dao
 interface CommentDao {

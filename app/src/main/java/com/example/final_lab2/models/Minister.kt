@@ -1,7 +1,7 @@
-package com.example.final_lab2
+package com.example.final_lab2.models
 
 data class Minister(
-    val hetekaId: Int,           // Ensure this matches the JSON structure
+    val hetekaId: Int,
     val seatNumber: Int,
     val lastname: String,
     val firstname: String,
