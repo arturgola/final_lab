@@ -17,9 +17,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.lifecycleScope
+import coil.compose.rememberAsyncImagePainter
+import kotlinx.coroutines.launch
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import coil.compose.rememberImagePainter
 
 
 class MainActivity : ComponentActivity() {
@@ -50,6 +52,15 @@ class MainActivity : ComponentActivity() {
                 MinisterScreen(viewModel)
             }
         }
+
+        // Start observing ministers to fetch comments for the first minister
+        lifecycleScope.launch {
+            viewModel.ministers.collect { ministers ->
+                if (ministers.isNotEmpty()) {
+                    viewModel.fetchComments(ministers[0].hetekaId)
+                }
+            }
+        }
     }
 }
 
@@ -60,6 +71,15 @@ fun MinisterScreen(viewModel: MinisterViewModel) {
     var rating by remember { mutableStateOf(0) }
 
     val ministers by viewModel.ministers.collectAsState() // Collect state from ViewModel
+    val comments by viewModel.comments.collectAsState() // Collect comments from ViewModel
+
+    // Fetch comments for the selected minister whenever selectedMinisterIndex changes
+    LaunchedEffect(selectedMinisterIndex) {
+        if (ministers.isNotEmpty()) {
+            val selectedMinister = ministers[selectedMinisterIndex]
+            viewModel.fetchComments(selectedMinister.hetekaId)
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -75,7 +95,7 @@ fun MinisterScreen(viewModel: MinisterViewModel) {
             Log.d("MinisterScreen", "Loading image from URL: $imageUrl")
 
             Image(
-                painter = rememberImagePainter(imageUrl),
+                painter = rememberAsyncImagePainter(imageUrl),
                 contentDescription = "Minister Picture",
                 modifier = Modifier.size(128.dp)
             )
@@ -90,6 +110,7 @@ fun MinisterScreen(viewModel: MinisterViewModel) {
 
             Button(onClick = {
                 selectedMinisterIndex = (selectedMinisterIndex + 1) % ministers.size
+                // Fetch comments for the new minister is handled by LaunchedEffect
             }) {
                 Text(text = "Next Minister")
             }
@@ -114,16 +135,12 @@ fun MinisterScreen(viewModel: MinisterViewModel) {
                 viewModel.addComment(minister.hetekaId, rating, commentText.text)
                 commentText = TextFieldValue("") // Clear the comment text
                 rating = 0 // Reset rating to 0
+                Log.d("MinisterScreen", "Adding comment: ${commentText.text}, rating: $rating")
             }) {
                 Text(text = "Add Comment")
             }
 
             Spacer(modifier = Modifier.height(16.dp))
-
-            // Load comments for the selected minister
-            val comments by produceState(initialValue = emptyList<Comment>(), viewModel) {
-                value = viewModel.getComments(minister.hetekaId)
-            }
 
             Text(text = "Comments:", style = MaterialTheme.typography.headlineSmall)
             for (comment in comments) {

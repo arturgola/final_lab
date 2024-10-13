@@ -16,6 +16,10 @@ class MinisterViewModel(private val repository: CommentRepository) : ViewModel()
     private val _ministers = MutableStateFlow<List<Minister>>(emptyList())
     val ministers = _ministers.asStateFlow() // Expose as StateFlow for UI
 
+    // StateFlow to hold comments for the selected minister
+    private val _comments = MutableStateFlow<List<Comment>>(emptyList())
+    val comments = _comments.asStateFlow() // Expose as StateFlow for UI
+
     private val TAG = "MinisterViewModel" // Tag for logging
 
     fun fetchMinisters(apiService: ApiService) {
@@ -45,10 +49,14 @@ class MinisterViewModel(private val repository: CommentRepository) : ViewModel()
     fun addComment(ministerId: Int, rating: Int, comment: String) {
         viewModelScope.launch {
             repository.insertComment(Comment(ministerId = ministerId, rating = rating, comment = comment))
+            fetchComments(ministerId) // Fetch comments after adding a new comment
         }
     }
 
-    suspend fun getComments(ministerId: Int): List<Comment> {
-        return repository.getComments(ministerId)
+    fun fetchComments(ministerId: Int) {
+        viewModelScope.launch {
+            val fetchedComments = repository.getComments(ministerId)
+            _comments.value = fetchedComments // Update comments StateFlow
+        }
     }
 }
